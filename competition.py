@@ -13,6 +13,7 @@ import logging as log
 import csv
 
 import matplotlib
+
 matplotlib.use('Agg')
 
 from code_pipeline.visualization import RoadTestVisualizer
@@ -27,13 +28,13 @@ ANY = object()
 ANY_NOT_NONE = object()
 DEFAULT = object()
 
+
 # Probably this could be simplified with HO functions?
 def check_command_with_complex_conditions(
-        check_option_is_defined_when_another_is_defined = {},
-        at_least_one_must_be_defined = [],
-        mutually_exclusive = []
+        check_option_is_defined_when_another_is_defined={},
+        at_least_one_must_be_defined=[],
+        mutually_exclusive=[]
 ):
-
     class CommandOptionRequiredClass(click.Command):
 
         def _get_real_names(self, parameter_list):
@@ -70,14 +71,17 @@ def check_command_with_complex_conditions(
                         at_least_one_defined = True
                 if not at_least_one_defined:
                     # Show the error message
-                    raise click.ClickException(f"At least one of those options must be defined {self._get_real_names(list_of_options)}")
+                    raise click.ClickException(
+                        f"At least one of those options must be defined {self._get_real_names(list_of_options)}")
 
             # check_option_is_defined_when_another_is_defined
             for requiring_tuple, required_parameters in check_option_is_defined_when_another_is_defined.items():
                 # Check if the requiring parameter is set
                 if requiring_tuple[0] in ctx.params:
                     # Check if the value of the requiring parameter is the expected one
-                    if requiring_tuple[0] == str(ANY) or (ctx.params[requiring_tuple[0]] is not None and requiring_tuple[0] == str(ANY_NOT_NONE)) or ctx.params[requiring_tuple[0]] == requiring_tuple[1]:
+                    if requiring_tuple[0] == str(ANY) or (
+                            ctx.params[requiring_tuple[0]] is not None and requiring_tuple[0] == str(ANY_NOT_NONE)) or \
+                            ctx.params[requiring_tuple[0]] == requiring_tuple[1]:
                         # In this case, all the required parameters must be declared. Note we do not check their value.
                         # Note each parameter is validated by a callback, so at this point we assume that if their value
                         #   is given, it is correct
@@ -87,7 +91,6 @@ def check_command_with_complex_conditions(
                                 # Show the error message
                                 raise click.ClickException(f"If {requiring_tuple[0]} is set to {requiring_tuple[1]}"
                                                            f" the option {option_name} must be specified")
-
 
             super(CommandOptionRequiredClass, self).invoke(ctx)
 
@@ -239,25 +242,28 @@ def setup_logging(log_to, debug):
 
     log.info(start_msg)
 
+
 # Pay attention that here we use the names of Python parameters, so we use dave2_model instead of dave2-model
 @click.command(cls=check_command_with_complex_conditions(
     # Conditionally check one option if others are set
-    check_option_is_defined_when_another_is_defined = {
+    check_option_is_defined_when_another_is_defined={
         # If executor is dave2 then the dave2_model becomes mandatory
         ('executor', 'dave2'): ['dave2_model'],
     },
     # Conditionally check that at least one option among the defined is set
-    at_least_one_must_be_defined = [ ['time_budget'] ]
+    at_least_one_must_be_defined=[['time_budget']]
 ))
 @click.option('--executor', type=click.Choice(['mock', 'beamng', 'dave2'], case_sensitive=False), default="mock",
               show_default='Mock Executor (meant for debugging)',
               help="The name of the executor to use. Currently we have 'mock', 'beamng' or 'dave2'.")
 @click.option('--dave2-model', required=False, type=click.Path(exists=True),
+              default='D:\\Code\\BlackBoard\\COM3610\\dave2\\beamng-dave2.h5',
               help="Path of the pre-trained Dave2 driving AI model (in .h5 format). Mandatory if the executor is dave2")
-@click.option('--beamng-home', required=False, default=None, type=click.Path(exists=True),
+@click.option('--beamng-home', required=False, default='E:\\Data\\Download\\BeamNG\\BeamNG.tech.v0.26.2.0',
+              type=click.Path(exists=True),
               show_default='None',
               help="Customize BeamNG executor by specifying the home of the simulator.")
-@click.option('--beamng-user', required=False, default=None, type=click.Path(exists=True),
+@click.option('--beamng-user', required=False, default='E:\\Data\\Download\\BeamNG\\user', type=click.Path(exists=True),
               show_default='Currently Active User (~/BeamNG.tech/)',
               help="Customize BeamNG executor by specifying the location of the folder "
                    "where levels, props, and other BeamNG-related data will be copied."
@@ -274,7 +280,7 @@ def setup_logging(log_to, debug):
               show_default='0.95',
               help="The tolerance value that defines how much of the vehicle should be outside the lane to "
                    "trigger a failed test. Must be a value between 0.0 (all oob) and 1.0 (no oob)")
-@click.option('--speed-limit', type=int, default=70, callback=validate_speed_limit,
+@click.option('--speed-limit', type=int, default=25, callback=validate_speed_limit,
               show_default='70 Km/h',
               help="The max speed of the ego-vehicle"
                    "Expressed in Kilometers per hours")
@@ -301,7 +307,6 @@ def generate(ctx, executor, dave2_model, beamng_home, beamng_user,
              map_size, oob_tolerance, speed_limit,
              module_name, module_path, class_name,
              visualize_tests, log_to, debug):
-
     ctx.ensure_object(dict)
 
     # TODO Refactor by adding a create summary command and forwarding the output of this run to that command
@@ -313,7 +318,7 @@ def generate(ctx, executor, dave2_model, beamng_home, beamng_user,
     if module_path:
         log.info(f"Loading module from {module_path}")
         sys.path.append(module_path)
-        
+
     log.info(f"Try to import {class_name} from {module_name}")
     module = importlib.import_module(module_name)
     the_class = getattr(module, class_name)
